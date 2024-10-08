@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
@@ -85,9 +86,10 @@ function Register() {
         ) {
           navigate("/login");
 
+        
           firstNameRef.current.value = "";
           lastNameRef.current.value = "";
-          ageRef.current.value = 0;
+          ageRef.current.value = "";
           emailRef.current.value = "";
           passwordRef.current.value = "";
           confirmPasswordRef.current.value = "";
@@ -131,7 +133,8 @@ function Register() {
         />
         {errors.lastName && <p className="text-red-500">{errors.lastName}</p>}
 
-        <input
+
+<input
           className={`border rounded-md p-3 ${
             errors.email ? "outline-red-500" : ""
           }`}
