@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import axios from "axios";
 
 function Register() {
   const formRef = useRef();
@@ -18,88 +19,83 @@ function Register() {
   const validateEmail = (email) => {
     return String(email)
       .toLowerCase()
-      .match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/);
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      );
   };
 
   const validate = () => {
-    if (firstNameRef.current.value.trim().length < 3) {
-      alert("First name must be at least 2 characters long.");
-    }
+    let validationErrors = {};
+    let isValid = true;
 
-    if (lastNameRef.current.value.trim().length < 2) {
-      alert("Last name must be at least 2 characters long.");
+    if (firstNameRef.current.value.length < 3) {
+      validationErrors.firstName = "User is not valid";
+      isValid = false;
     }
-
+    if (lastNameRef.current.value.length < 3) {
+      validationErrors.lastName = "Surname is not valid";
+      isValid = false;
+    }
+    const age = parseInt(ageRef.current.value, 10);
+    if (isNaN(age) || age < 18) {
+      validationErrors.age = "You must be at least 18 years old.";
+      isValid = false;
+    }
     if (!validateEmail(emailRef.current.value)) {
-      alert("Invalid email address.");
+      validationErrors.email = "Email is not valid";
+      isValid = false;
     }
-
-    if (!ageRef.current.value || ageRef.current.value < 18) {
-      alert("You must be at least 18 years old.");
-    }
-
-    if (passwordRef.current.value.trim().length < 4) {
-      alert("Password must be at least 4 characters.");
-    }
-
     if (passwordRef.current.value !== confirmPasswordRef.current.value) {
-      alert("Passwords do not match.");
+      validationErrors.password = "Passwords do not match!";
+      isValid = false;
     }
 
-    return true;
+    setErrors(validationErrors);
+    return isValid;
   };
 
-  const handleRegister = async (event) => {
+  const handleRegister = (event) => {
     event.preventDefault();
-    const isValid = validate();
 
+    const isValid = validate();
     if (!isValid) {
       return;
     }
 
-    const user = {
-      firstName: firstNameRef.current.value.trim(),
-      lastName: lastNameRef.current.value.trim(),
+    const registerUser = {
+      firstName: firstNameRef.current.value,
+      lastName: lastNameRef.current.value,
       age: ageRef.current.value,
-      email: emailRef.current.value.trim(),
-      password: passwordRef.current.value.trim(),
+      email: emailRef.current.value,
+      password: passwordRef.current.value,
+      confirmPassword: confirmPasswordRef.current.value,
     };
 
-    console.log(user);
     setPressed(true);
-    fetch(`${import.meta.env.VITE_API_URL}/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(user),
-    })
-      .then((reset) => {
-        if (!reset.ok) {
-          return res.json().then((errorData) => {
-            alert(errorData.message || `Server error: ${res.status}`);
-          });
-        }
-        return res.json();
+    axios
+      .post(`${import.meta.env.VITE_API_URL}/register`, registerUser, {
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
       .then((data) => {
-        if (data.message === "User registered successfully!") {
-          formRef.current.reset();
-          alert("Registration successful! You can now log in.");
+        if (
+          data.data.message ===
+          "Ro'yxatdan muvaffaqiyatli o'tdingiz! Email tasdiqlash uchun havola yuborildi."
+        ) {
           navigate("/login");
-        } else {
-          alert(data.message || "An unknown error occurred. Please try again.");
+
+          firstNameRef.current.value = "";
+          lastNameRef.current.value = "";
+          ageRef.current.value = 0;
+          emailRef.current.value = "";
+          passwordRef.current.value = "";
+          confirmPasswordRef.current.value = "";
+          setErrors({});
         }
       })
       .catch((err) => {
-        console.error(err);
-        if (err.message.includes("Username is already in use")) {
-          alert("This username is already taken. Please choose another one.");
-        } else if (err.message.includes("Email is already in use")) {
-          alert("This email is already registered. Please log in.");
-        } else {
-          alert("Registration failed. Please check your input and try again.");
-        }
+        console.log(err);
       })
       .finally(() => {
         setPressed(false);
@@ -135,7 +131,6 @@ function Register() {
         />
         {errors.lastName && <p className="text-red-500">{errors.lastName}</p>}
 
-        {/* Email input */}
         <input
           className={`border rounded-md p-3 ${
             errors.email ? "outline-red-500" : ""
